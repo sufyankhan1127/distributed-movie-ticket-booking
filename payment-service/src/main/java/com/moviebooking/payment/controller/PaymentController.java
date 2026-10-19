@@ -7,7 +7,9 @@ import com.moviebooking.payment.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.moviebooking.payment.entity.PaymentStatus;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @RestController
@@ -19,6 +21,19 @@ public class PaymentController {
     public PaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
+
+
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Payment> updatePaymentStatus(
+            @PathVariable Long id,
+            @RequestParam PaymentStatus status) {
+
+        return ResponseEntity.ok(
+                paymentService.updatePaymentStatus(id, status)
+        );
+    }
+
 
     @PostMapping
     public ResponseEntity<Payment> createPayment(

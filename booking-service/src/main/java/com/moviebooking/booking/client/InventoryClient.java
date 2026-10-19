@@ -10,6 +10,38 @@ import java.util.Map;
 
 @Component
 public class InventoryClient {
+    public InventoryDetails reserveSeats(Long showId, Integer seats) {
+        try {
+            Map<?, ?> response = restTemplate.postForObject(
+                    "http://localhost:8083/api/inventory/{showId}/reserve?seats={seats}",
+                    null,
+                    Map.class,
+                    showId,
+                    seats
+            );
+
+            if (response == null) {
+                throw new IllegalStateException(
+                        "Inventory Service returned an empty response");
+            }
+
+            return new InventoryDetails(
+                    ((Number) response.get("availableSeats")).intValue(),
+                    new java.math.BigDecimal(
+                            response.get("ticketPrice").toString()
+                    )
+            );
+
+        } catch (org.springframework.web.client.HttpClientErrorException ex) {
+            throw new IllegalArgumentException(
+                    "Seat reservation failed: "
+                            + ex.getResponseBodyAsString(), ex);
+
+        } catch (org.springframework.web.client.RestClientException ex) {
+            throw new IllegalStateException(
+                    "Could not connect to Inventory Service", ex);
+        }
+    }
 
     private final RestTemplate restTemplate;
 

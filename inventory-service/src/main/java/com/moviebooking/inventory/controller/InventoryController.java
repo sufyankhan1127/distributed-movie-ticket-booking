@@ -6,12 +6,23 @@ import com.moviebooking.inventory.service.InventoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/inventory")
 public class InventoryController {
+
+    @PostMapping("/{showId}/reserve")
+    public ResponseEntity<ShowInventory> reserveSeats(
+            @PathVariable Long showId,
+            @RequestParam Integer seats) {
+
+        ShowInventory inventory =
+                inventoryService.reserveSeats(showId, seats);
+
+        return ResponseEntity.ok(inventory);
+    }
 
     private final InventoryService inventoryService;
 

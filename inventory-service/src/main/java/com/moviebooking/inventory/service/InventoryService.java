@@ -4,6 +4,7 @@ package com.moviebooking.inventory.service;
 import com.moviebooking.inventory.entity.ShowInventory;
 import com.moviebooking.inventory.repository.InventoryRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -46,5 +47,22 @@ public class InventoryService {
 
     public List<ShowInventory> getInventoriesByMovieId(Long movieId) {
         return inventoryRepository.findByMovieId(movieId);
+    }
+
+    @Transactional
+    public ShowInventory reserveSeats(Long showId, Integer seats) {
+        if (seats == null || seats <= 0) {
+            throw new IllegalArgumentException(
+                    "Number of seats must be greater than zero");
+        }
+
+        int updatedRows = inventoryRepository.reserveSeats(showId, seats);
+
+        if (updatedRows == 0) {
+            throw new IllegalArgumentException(
+                    "Show not found or insufficient seats available");
+        }
+
+        return getInventoryById(showId);
     }
 }

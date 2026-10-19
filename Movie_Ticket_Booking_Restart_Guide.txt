@@ -1,234 +1,42 @@
-DISTRIBUTED MOVIE TICKET BOOKING SYSTEM SESSION STOP / NEXT-SESSION
-RESTART GUIDE
-============================================================
 
-Project folder: D:-movie-ticket-booking
 
-GitHub repository:
-https://github.com/sufyankhan1127/distributed-movie-ticket-booking
+cd D:\distributed-movie-ticket-booking
+docker compose up -d
+docker compose ps
 
-Services and ports currently used: - MySQL (Docker): localhost:3307 -
-Redis (Docker): localhost:6379 - Kafka (Docker): localhost:9092 - Eureka
-Discovery Server: http://localhost:8761 - User Service:
-http://localhost:8081 - Movie Service: http://localhost:8082 - Inventory
-Service: http://localhost:8083 - Booking Service:
-http://localhost:8084 - Payment Service: http://localhost:8085
 
-IMPORTANT: - Start Docker infrastructure first. - Start each Spring Boot
-service in its OWN IntelliJ terminal. - Keep each terminal open while
-that service is running. - Wait until a service has fully started before
-starting the next one. - Do not paste secrets into GitHub. Check .env
-and application config before pushing. - These commands assume the
-application.yml files use the ports listed above. - Notification Service
-has not been implemented/tested yet.
+cd D:\distributed-movie-ticket-booking
+mvn -pl discovery-server spring-boot:run
 
-============================================================ A. BEFORE
-STOPPING TODAY: PUSH YOUR CODE TO GITHUB
-============================================================
 
-1.  Open a NEW IntelliJ terminal and run:
+cd D:\distributed-movie-ticket-booking\user-service
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$bytes = New-Object byte[] 32
+$rng.GetBytes($bytes)
+$env:JWT_SECRET = [Convert]::ToBase64String($bytes)
+mvn spring-boot:run
 
-cd D:-movie-ticket-booking git status
 
-2.  Review the files shown. Make sure you are NOT committing:
 
--   .env files containing passwords or secrets
--   generated build output such as target/
--   IDE-specific files you do not want in the repository
+cd D:\distributed-movie-ticket-booking\movie-service
+mvn spring-boot:run
 
-If .env or secrets appear in the files to be committed, stop and fix
-.gitignore before continuing. Never paste secret values into GitHub.
 
-3.  Stage and commit the project:
 
-git add . git status git commit -m “Implement movie inventory booking
-and payment services”
+cd D:\distributed-movie-ticket-booking\inventory-service
+mvn spring-boot:run
 
-If Git says there is nothing to commit, the changes may already be
-committed.
 
-4.  Push to GitHub:
 
-git push origin main
+cd D:\distributed-movie-ticket-booking\booking-service
+mvn spring-boot:run
 
-If your current branch is not main, run git branch --show-current and
-push that branch instead: git push origin YOUR_BRANCH_NAME
 
-If Git asks you to sign in, complete GitHub authentication in the
-browser. Do not share your password or token in chat.
 
-5.  Verify the push by opening the repository URL above and checking
-    that the latest commit and files are present.
+cd D:\distributed-movie-ticket-booking\payment-service
+mvn spring-boot:run
 
-============================================================ B. NEXT
-TIME: START DOCKER INFRASTRUCTURE
-============================================================
 
-Open IntelliJ and open the existing project folder.
 
-Terminal 1 — infrastructure:
-
-cd D:-movie-ticket-booking docker compose up -d docker compose ps
-
-Wait for MySQL, Redis, and Kafka containers to be running/healthy. If a
-container is still starting, wait and check docker compose ps again.
-
-Do not run docker compose down when you want the services to remain
-available.
-
-============================================================ C. START
-EUREKA DISCOVERY SERVER
-============================================================
-
-Open Terminal 2:
-
-cd D:-movie-ticket-booking mvn -pl discovery-server spring-boot:run
-
-Wait for startup to finish, then open: http://localhost:8761
-
-Keep this terminal open.
-
-============================================================ D. START
-USER SERVICE
-============================================================
-
-Open Terminal 3:
-
-cd D:-movie-ticket-booking-service mvn spring-boot:run
-
-If your User Service configuration requires JWT_SECRET, set it in THIS
-SAME PowerShell terminal before starting the service:
-
-rng = [System.Security.Cryptography.RandomNumberGenerator] :  : Create()bytes
-= New-Object byte[] 32 rng.GetBytes(bytes)
-env : JWT_(S)ECRET = [Convert] :  : ToBase64String(bytes)
-
-Then run: mvn spring-boot:run
-
-IMPORTANT: This generates a new development key for this terminal
-session. Any JWTs from an earlier session will no longer validate. Keep
-the same terminal open while the service is running.
-
-Keep this terminal open.
-
-============================================================ E. START
-MOVIE SERVICE
-============================================================
-
-Open Terminal 4:
-
-cd D:-movie-ticket-booking-service mvn spring-boot:run
-
-Wait for startup to finish. Keep this terminal open.
-
-============================================================ F. START
-INVENTORY SERVICE
-============================================================
-
-Open Terminal 5:
-
-cd D:-movie-ticket-booking-service mvn spring-boot:run
-
-Wait for startup to finish. Keep this terminal open.
-
-============================================================ G. START
-BOOKING SERVICE
-============================================================
-
-Open Terminal 6:
-
-cd D:-movie-ticket-booking-service mvn spring-boot:run
-
-Wait for startup to finish. Keep this terminal open.
-
-============================================================ H. START
-PAYMENT SERVICE
-============================================================
-
-Open Terminal 7:
-
-cd D:-movie-ticket-booking-service mvn spring-boot:run
-
-Wait for startup to finish. Keep this terminal open.
-
-============================================================ I.
-OPTIONAL: START API GATEWAY
-============================================================
-
-The gateway has been created, but its routes/configuration should be
-checked before relying on it. Start it in another terminal only if
-needed:
-
-cd D:-movie-ticket-booking mvn -pl api-gateway spring-boot:run
-
-Direct service URLs are listed at the top of this guide.
-
-============================================================ J. QUICK
-SMOKE TESTS ============================================================
-
-Open these URLs in a browser or Postman:
-
-1.  Eureka Dashboard: http://localhost:8761
-
-2.  Movie Service list: GET http://localhost:8082/api/movies
-
-3.  Inventory list: GET http://localhost:8083/api/inventory
-
-4.  Booking list: GET http://localhost:8084/api/bookings
-
-5.  Payment list: GET http://localhost:8085/api/payments
-
-Expected for empty lists: []. If a service is not running, the request
-will fail until that service has started.
-
-The payment endpoint was tested successfully during the last session:
-POST http://localhost:8085/api/payments Body (raw JSON): { “bookingId”:
-1, “amount”: 500.00 } Expected response: 201 Created with status
-PENDING.
-
-NOTE: This is currently a learning-stage payment record, not a real
-payment transaction.
-
-============================================================ K. STOPPING
-EVERYTHING ============================================================
-
-For each Spring Boot service terminal, press: Ctrl+C
-
-After stopping the Spring Boot services, to stop Docker containers too:
-
-cd D:-movie-ticket-booking docker compose down
-
-This stops containers but preserves named Docker volumes unless you
-explicitly remove them. Do NOT use docker compose down -v unless you
-intentionally want to delete the persisted Docker volumes/data.
-
-============================================================ L. WHERE WE
-WILL CONTINUE NEXT
-============================================================
-
-Current progress: - Contracts module created - Eureka Discovery Server
-runs - User Service: registration/login and JWT test endpoint worked -
-Movie Service: entity, repository, service, controller implemented and
-service worked - Inventory Service: entity, repository, service,
-controller implemented and service worked - Booking Service: entity,
-status, repository, request DTO, Inventory client, service, controller
-implemented and tests worked - Payment Service: entity, status,
-repository, request DTO, service, controller implemented; POST payment
-returned 201 Created with PENDING - Docker infrastructure: MySQL, Redis,
-Kafka configured in Compose - API Gateway exists; route/runtime
-verification remains - Notification Service exists as a module but is
-not yet implemented/tested - Kafka is not yet integrated into the
-booking/payment workflow - Booking currently checks inventory
-availability but does not atomically reserve/decrement seats - Payment
-currently creates a PENDING record; it does not charge money or confirm
-bookings
-
-Recommended next work: 1. Verify current Git changes are committed and
-pushed. 2. Implement safe, atomic seat reservation in Inventory Service.
-3. Connect Booking and Payment using Kafka events. 4. Implement
-notification events/consumer. 5. Configure and verify API Gateway
-routes. 6. Add proper error responses, authentication integration, and
-tests.
-
-When resuming, start with section B and bring back any startup error
-logs if a service fails.
+cd D:\distributed-movie-ticket-booking\notification-service
+mvn spring-boot:run

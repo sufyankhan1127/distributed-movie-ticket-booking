@@ -1,10 +1,13 @@
 
 package com.moviebooking.payment.service;
 
+import com.moviebooking.contracts.event.PaymentEvent;
 import com.moviebooking.payment.dto.CreatePaymentRequest;
 import com.moviebooking.payment.entity.Payment;
 import com.moviebooking.payment.entity.PaymentStatus;
+import com.moviebooking.payment.event.PaymentEventProducer;
 import com.moviebooking.payment.repository.PaymentRepository;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
@@ -12,6 +15,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -20,16 +24,19 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final RestTemplate restTemplate;
+    private final PaymentEventProducer paymentEventProducer;
 
-    public PaymentService(PaymentRepository paymentRepository) {
+    public PaymentService(
+            PaymentRepository paymentRepository,
+            PaymentEventProducer paymentEventProducer) {
+
         this.paymentRepository = paymentRepository;
+        this.paymentEventProducer = paymentEventProducer;
         this.restTemplate = new RestTemplate();
     }
 
-
-    public Payment updatePaymentStatus(Long paymentId, PaymentStatus status) {
-
-        Payment payment = getPaymentById(paymentId);
+    public Payment updatePaymentStatus(
+            Long paymentId, PaymentStatus status) {
 
         if (status != PaymentStatus.SUCCESS
                 && status != PaymentStatus.FAILED) {
@@ -37,31 +44,44 @@ public class PaymentService {
                     "Only SUCCESS or FAILED is allowed here");
         }
 
+        Payment payment = getPaymentById(paymentId);
+
         if (payment.getStatus() != PaymentStatus.PENDING) {
             throw new IllegalArgumentException(
                     "Only pending payments can be updated");
         }
 
         payment.setStatus(status);
-
         Payment savedPayment = paymentRepository.save(payment);
 
         String bookingStatus =
-                status == PaymentStatus.SUCCESS ? "CONFIRMED" : "FAILED";
+                status == PaymentStatus.SUCCESS
+                        ? "CONFIRMED"
+                        : "FAILED";
 
         try {
             restTemplate.patchForObject(
                     "http://localhost:8084/api/bookings/{id}/status?status={status}",
                     null,
                     Map.class,
-                    payment.getBookingId(),
+                    savedPayment.getBookingId(),
                     bookingStatus
             );
         } catch (RestClientException ex) {
             throw new IllegalStateException(
                     "Payment status saved, but booking status update failed",
-                    ex);
+                    ex
+            );
         }
+
+        PaymentEvent event = new PaymentEvent();
+        event.setPaymentId(savedPayment.getId());
+        event.setBookingId(savedPayment.getBookingId());
+        event.setEventType(savedPayment.getStatus().name());
+        event.setAmount(savedPayment.getAmount());
+        event.setOccurredAt(LocalDateTime.now());
+
+        paymentEventProducer.publishPaymentEvent(event);
 
         return savedPayment;
     }
@@ -82,7 +102,6 @@ public class PaymentService {
                     "Payment amount must be greater than zero");
         }
 
-        // Fetch the booking from Booking Service
         Map<String, Object> booking;
 
         try {
@@ -93,11 +112,13 @@ public class PaymentService {
                     new ParameterizedTypeReference<Map<String, Object>>() {},
                     request.getBookingId()
             ).getBody();
+
         } catch (RestClientException ex) {
             throw new IllegalArgumentException(
                     "Could not retrieve booking. Verify the booking ID "
                             + "and ensure Booking Service is running.",
-                    ex);
+                    ex
+            );
         }
 
         if (booking == null) {
@@ -113,9 +134,11 @@ public class PaymentService {
                     "Payment amount does not match booking total");
         }
 
-        // Prevent duplicate payment records for the same booking
-        if (!paymentRepository.findByBookingId(
-                request.getBookingId()).isEmpty()) {
+        List<Payment> existingPayments =
+                paymentRepository.findByBookingId(
+                        request.getBookingId());
+
+        if (!existingPayments.isEmpty()) {
             throw new IllegalArgumentException(
                     "A payment record already exists for this booking");
         }

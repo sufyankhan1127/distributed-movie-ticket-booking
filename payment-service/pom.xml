@@ -17,6 +17,12 @@
     <description>Simulated payment processing for movie ticket bookings</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.moviebooking</groupId>
             <artifactId>contracts</artifactId>

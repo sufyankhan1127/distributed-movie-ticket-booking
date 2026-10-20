@@ -1,3 +1,4 @@
+
 server:
   port: 8080
 
@@ -6,9 +7,36 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: false
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**
+
+            - id: movie-service
+              uri: lb://movie-service
+              predicates:
+                - Path=/api/movies/**
+
+            - id: inventory-service
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/inventory/**
+
+            - id: booking-service
+              uri: lb://booking-service
+              predicates:
+                - Path=/api/bookings/**
+
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/**
 
 eureka:
   client:
@@ -25,5 +53,15 @@ management:
       exposure:
         include: health,info,gateway
   endpoint:
+    gateway:
+      enabled: true
     health:
       show-details: never
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.loadbalancer: DEBUG
+    org.springframework.cloud.client.loadbalancer: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty: DEBUG

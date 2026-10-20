@@ -1,13 +1,14 @@
-package com.moviebooking.contracts.event;
 
+package com.moviebooking.contracts.event;
+import com.moviebooking.contracts.event.BookingEvent;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class BookingEvent {
 
-    private String bookingId;
+    private Long bookingId;
     private String userId;
-    private String showId;
+    private Long showId;
     private String eventType;
     private BigDecimal amount;
     private LocalDateTime occurredAt;
@@ -16,9 +17,9 @@ public class BookingEvent {
     }
 
     public BookingEvent(
-            String bookingId,
+            Long bookingId,
             String userId,
-            String showId,
+            Long showId,
             String eventType,
             BigDecimal amount,
             LocalDateTime occurredAt) {
@@ -30,11 +31,11 @@ public class BookingEvent {
         this.occurredAt = occurredAt;
     }
 
-    public String getBookingId() {
+    public Long getBookingId() {
         return bookingId;
     }
 
-    public void setBookingId(String bookingId) {
+    public void setBookingId(Long bookingId) {
         this.bookingId = bookingId;
     }
 
@@ -46,11 +47,11 @@ public class BookingEvent {
         this.userId = userId;
     }
 
-    public String getShowId() {
+    public Long getShowId() {
         return showId;
     }
 
-    public void setShowId(String showId) {
+    public void setShowId(Long showId) {
         this.showId = showId;
     }
 

@@ -1,5 +1,5 @@
 
-package com.moviebooking.notification.event;
+package com.moviebooking.notification.consumer;
 
 import com.moviebooking.contracts.event.BookingEvent;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -13,14 +13,13 @@ public class BookingEventConsumer {
             groupId = "notification-service"
     )
     public void consumeBookingEvent(BookingEvent event) {
-
-        System.out.println("===== BOOKING EVENT RECEIVED =====");
+        System.out.println("========== BOOKING EVENT ==========");
         System.out.println("Booking ID: " + event.getBookingId());
         System.out.println("User ID: " + event.getUserId());
         System.out.println("Show ID: " + event.getShowId());
         System.out.println("Event Type: " + event.getEventType());
         System.out.println("Amount: " + event.getAmount());
         System.out.println("Occurred At: " + event.getOccurredAt());
-        System.out.println("==================================");
+        System.out.println("===================================");
     }
 }

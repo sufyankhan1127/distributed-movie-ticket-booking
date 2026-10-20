@@ -888,3 +888,18 @@ Copy this section at the end of the file for each new development day.
 ---
 
 *End of Day 1 engineering log.*
+
+
+### Day 2 — Kafka Integration and Build Verification
+
+**Work completed**
+- Consolidated shared booking and payment event contracts.
+- Added Kafka consumers for booking and payment events.
+- Configured JSON event serialization and deserialization.
+- Verified the full Maven reactor build.
+
+**Build result:** SUCCESS
+
+**Command executed**
+```powershell
+mvn clean install -DskipTests

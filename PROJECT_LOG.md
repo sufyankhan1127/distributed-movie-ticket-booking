@@ -6,7 +6,7 @@
 > **Repository:** [GitHub - Distributed Movie Ticket Booking System](https://github.com/sufyankhan1127/distributed-movie-ticket-booking)  
 > **Project Root:** `D:\distributed-movie-ticket-booking`  
 > **Current Phase:** Core microservices development  
-> **Latest Recorded Session:** Day 1 — Foundation, Services & Event Integration
+> **Latest Recorded Session:** Day 3 — Service Startup, Gateway Route Verification & Debugging
 
 ---
 
@@ -25,6 +25,7 @@
 11. [Known Limitations & Future Improvements](#11-known-limitations--future-improvements)
 12. [Day 2 — Planned Work](#12-day-2--planned-work)
 13. [Development Rules](#13-development-rules)
+14. [Day 3 — Service Startup, Gateway Route Verification & Debugging](#14-day-3--service-startup-gateway-route-verification--debugging)
 
 ---
 
@@ -114,7 +115,7 @@ The project aims to develop practical knowledge of:
 | `inventory-service` | 8083 | Show inventory and seat reservation |
 | `booking-service` | 8084 | Booking creation and booking status management |
 | `payment-service` | 8085 | Payment record creation and payment status management |
-| `notification-service` | TBD | Kafka event consumption and notification processing |
+| `notification-service` | 8086 | Kafka event consumption and notification processing |
 
 The ports above are the intended local service ports. Verify the application configuration before assuming every service is running.
 
@@ -718,13 +719,13 @@ Generating a new secret invalidates tokens signed with the previous secret. Use 
 - [x] Payment event consumer
 - [x] Docker infrastructure setup
 - [x] Payment and Notification Maven reactor build
+- [x] Full-project Maven build with tests skipped (`mvn clean install -DskipTests`)
+- [x] All seven application services registered as `UP` in Eureka during the latest runtime check
+- [x] Gateway route definitions visible through the Gateway Actuator endpoint
 
 ### Not yet verified end to end
 
-- [ ] Full-project Maven build
-- [ ] All services running together
-- [ ] Eureka registration of every service
-- [ ] Gateway routing to each service
+- [ ] Gateway successfully forwarding requests to downstream services (currently returns HTTP 500 for `/api/movies`)
 - [ ] Registration and login with JWT
 - [ ] Movie CRUD API testing
 - [ ] Seat reservation API testing
@@ -780,7 +781,7 @@ Generating a new secret invalidates tokens signed with the previous secret. Use 
 
 ---
 
-## 12. Day 2 — Planned Work
+## 12. Day 2 — Planned Work (Initial Verification Plan)
 
 The next development session will focus on running and verifying the system rather than adding features blindly.
 
@@ -823,7 +824,7 @@ The next development session will focus on running and verifying the system rath
 - [ ] Document any failures and fixes.
 - [ ] Update this log with the actual results.
 
-**Day 2 completion criterion:** The core booking and payment flow is exercised through the APIs, the expected events are observed, and failures are documented.
+**Day 2 completion criterion:** The core booking and payment flow is exercised through the APIs, the expected events are observed, and failures are documented. This remains a planned criterion; the end-to-end booking/payment flow has not yet been confirmed.
 
 ---
 
@@ -903,3 +904,110 @@ Copy this section at the end of the file for each new development day.
 **Command executed**
 ```powershell
 mvn clean install -DskipTests
+
+
+---
+
+## 14. Day 3 — Service Startup, Gateway Route Verification & Debugging
+
+**Date:** 2026-10-20 to 2026-10-21
+
+**Objective:** Start the application services, confirm service discovery and build status, check API Gateway route configuration, and identify the cause of a Gateway HTTP 500 response.
+
+### Work completed
+
+- [x] Confirmed the Eureka dashboard was reachable at `http://localhost:8761`.
+- [x] Confirmed the seven application services were registered with Eureka and displayed as `UP` during the latest check: `API-GATEWAY`, `USER-SERVICE`, `MOVIE-SERVICE`, `INVENTORY-SERVICE`, `BOOKING-SERVICE`, `PAYMENT-SERVICE`, and `NOTIFICATION-SERVICE`.
+- [x] Confirmed the complete Maven reactor build succeeded with tests skipped.
+- [x] Confirmed the Gateway health endpoint `http://localhost:8080/actuator/health` returned `UP`.
+- [x] Confirmed the Gateway Actuator routes endpoint listed five configured routes for user, movie, inventory, booking, and payment services.
+- [x] Confirmed the Movie Service endpoint works when called directly at `http://localhost:8082/api/movies`; it returned movie records including *Interstellar* and *John Wick*.
+- [x] Confirmed direct access to the Movie Service through the address advertised by Eureka also worked.
+
+### Build command and result
+
+```powershell
+cd D:\distributed-movie-ticket-booking
+mvn clean install -DskipTests
+```
+
+**Result:** `SUCCESS` as reported during the session. Tests were skipped, so this confirms the Maven build but does not confirm end-to-end application behavior.
+
+### Gateway configuration and observed behavior
+
+The Gateway configuration uses Spring Cloud Gateway's WebFlux server configuration tree and explicit routes with `lb://` service URIs. The configured routes are:
+
+| Route ID | Destination | Path predicate |
+|---|---|---|
+| `user-service` | `lb://user-service` | `/api/users/**` |
+| `movie-service` | `lb://movie-service` | `/api/movies/**` |
+| `inventory-service` | `lb://inventory-service` | `/api/inventory/**` |
+| `booking-service` | `lb://booking-service` | `/api/bookings/**` |
+| `payment-service` | `lb://payment-service` | `/api/payments/**` |
+
+Observed results:
+
+- `GET http://localhost:8080/actuator/health` → `UP`.
+- `GET http://localhost:8080/actuator/gateway/routes` → five configured routes returned.
+- `GET http://localhost:8082/api/movies` → successful direct Movie Service response.
+- `GET http://localhost:8080/api/movies` → **HTTP 500 Internal Server Error**.
+- The Gateway Actuator routes endpoint previously returned 404 before its configuration/property setup was corrected; the endpoint is now available.
+
+**Current diagnosis:** The Gateway route definitions exist, the Gateway process is healthy, and the downstream Movie Service responds directly. However, Gateway forwarding is still failing. The exact cause is **not confirmed** because the detailed Gateway exception/stack trace has not yet been captured. Do not treat the problem as fixed or make further speculative configuration changes before inspecting the logs.
+
+### Files/configuration involved
+
+- `api-gateway/src/main/resources/application.yml` — Gateway route configuration, Eureka client configuration, and Actuator exposure.
+- `api-gateway/pom.xml` — Gateway, Eureka client, and Spring Cloud LoadBalancer dependencies were inspected in the dependency tree.
+
+The dependency tree showed Spring Cloud Gateway `4.3.0`, Eureka client `4.3.0`, and Spring Cloud LoadBalancer `4.3.0` dependencies.
+
+### Pending debugging steps
+
+1. Start Gateway from its module directory and save its console output to a log file.
+2. In a second PowerShell terminal, request `http://localhost:8080/api/movies` to reproduce the error.
+3. Stop Gateway with `Ctrl+C` so the log is flushed.
+4. Search the log for `ERROR`, `Exception`, `Caused by`, `LoadBalancer`, `No servers available`, and `Connection refused`.
+5. Use the actual exception to identify the cause before changing configuration.
+
+**Terminal 1 — start Gateway and capture output**
+
+```powershell
+cd D:\distributed-movie-ticket-booking\api-gateway
+mvn spring-boot:run *> gateway-debug.log
+```
+
+**Terminal 2 — reproduce the Gateway failure**
+
+```powershell
+try {
+    Invoke-RestMethod "http://localhost:8080/api/movies"
+} catch {
+    $_.ErrorDetails.Message
+}
+```
+
+After stopping Gateway, run this in the Gateway module directory:
+
+```powershell
+Select-String -Path .\gateway-debug.log -Pattern "ERROR|Exception|Caused by|LoadBalancer|No servers available|Connection refused" -Context 3,8
+```
+
+### Current status
+
+- **Build:** Successful with tests skipped.
+- **Eureka:** All seven application services were shown as `UP` in the latest recorded check.
+- **Movie Service direct endpoint:** Working.
+- **Gateway health and route listing:** Working.
+- **Gateway proxy request to Movie Service:** Not working yet; returns HTTP 500.
+- **Root cause of Gateway HTTP 500:** Pending console stack trace.
+- **Kafka booking/payment end-to-end workflow:** Not yet verified.
+- **GitHub push:** Check `git status` and `git log -1 --oneline` before deciding whether a new commit is needed; no push completion is recorded in this session.
+
+### Next session objective
+
+Capture the Gateway exception, fix the root cause based on the evidence, restart Gateway, and verify that `http://localhost:8080/api/movies` returns the same movie data as the direct Movie Service endpoint. Then test the remaining Gateway routes and continue with end-to-end Kafka booking/payment verification.
+
+---
+
+*End of current engineering log. Update this file after the next verified development session.*

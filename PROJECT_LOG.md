@@ -1004,7 +1004,8 @@ Select-String -Path .\gateway-debug.log -Pattern "ERROR|Exception|Caused by|Load
 - **Kafka booking/payment end-to-end workflow:** Not yet verified.
 - **GitHub push:** Check `git status` and `git log -1 --oneline` before deciding whether a new commit is needed; no push completion is recorded in this session.
 
-### Next session objective
+### Next sess
+ion objective
 
 Capture the Gateway exception, fix the root cause based on the evidence, restart Gateway, and verify that `http://localhost:8080/api/movies` returns the same movie data as the direct Movie Service endpoint. Then test the remaining Gateway routes and continue with end-to-end Kafka booking/payment verification.
 

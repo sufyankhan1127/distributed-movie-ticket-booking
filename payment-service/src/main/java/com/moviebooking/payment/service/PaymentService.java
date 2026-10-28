@@ -7,7 +7,8 @@ import com.moviebooking.payment.entity.Payment;
 import com.moviebooking.payment.entity.PaymentStatus;
 import com.moviebooking.payment.event.PaymentEventProducer;
 import com.moviebooking.payment.repository.PaymentRepository;
-
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,11 @@ public class PaymentService {
 
         this.paymentRepository = paymentRepository;
         this.paymentEventProducer = paymentEventProducer;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = new RestTemplate(
+                new HttpComponentsClientHttpRequestFactory(
+                        HttpClients.createDefault()
+                )
+        );
     }
 
     public Payment updatePaymentStatus(
